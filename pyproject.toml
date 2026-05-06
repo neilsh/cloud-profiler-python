@@ -1,0 +1,7 @@
+# Added alongside setup.py to enable PEP 517 builds. setup.py remains the
+# source of truth for the C extension build configuration, classifiers, and
+# install_requires.
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
