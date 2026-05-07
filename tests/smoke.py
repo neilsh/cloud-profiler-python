@@ -1,13 +1,16 @@
-"""Smoke test: import the package and call start() once.
+"""Smoke test: import the package and run start()'s preflight path.
 
-start() will raise DefaultCredentialsError without GCP credentials; that's
-expected and not treated as a failure. We just verify the C extension loads,
-the agent's Python wrappers are importable, and start() doesn't crash the
-process before/after the credential check.
+Without GCP creds, start() raises DefaultCredentialsError from setup_auth
+before any SIGPROF handler is installed, so this validates only:
+- the package imports (which on Linux loads the _profiler C extension)
+- start()'s argument validation and Client construction don't crash
+
+SIGPROF runtime behavior is exercised by `nox -s stress`.
 """
 
 import sys
-import time
+
+from google.auth.exceptions import DefaultCredentialsError, RefreshError
 
 import googlecloudprofiler
 
@@ -17,9 +20,7 @@ try:
         service_version="1.0.0",
         verbose=3,
     )
-except Exception as exc:  # noqa: BLE001 - expected without GCP creds
-    sys.stderr.write("start() raised (allowed without GCP creds): %r\n" % (exc,))
+except (DefaultCredentialsError, RefreshError) as exc:
+    sys.stderr.write("start() raised expected creds error: %r\n" % (exc,))
 
-# Give the agent thread a moment to crash if it's going to.
-time.sleep(2)
 print("OK")
