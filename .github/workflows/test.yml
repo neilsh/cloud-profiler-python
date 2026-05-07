@@ -41,4 +41,5 @@ jobs:
       - run: pip install nox
       - run: nox -s stress-${{ matrix.python }}
         env:
-          STRESS_DURATION_SEC: "60"
+          STRESS_DURATION_SEC: "20"
+          STRESS_RUNS: "3"
