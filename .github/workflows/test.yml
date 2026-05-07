@@ -3,11 +3,15 @@ name: test
 on:
   pull_request:
   push:
-    branches: [main, master]
+    branches: [main]
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: Py ${{ matrix.python }}
+  smoke:
+    name: smoke ${{ matrix.python }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,6 +24,21 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: pip install nox
       - run: nox -s smoke-${{ matrix.python }}
+
+  stress:
+    name: stress ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      # Host Python only needs to run nox; stress runs inside python:X.Y-slim Docker.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install nox
       - run: nox -s stress-${{ matrix.python }}
         env:
           STRESS_DURATION_SEC: "60"
