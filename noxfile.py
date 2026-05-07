@@ -10,7 +10,7 @@ Run a specific session:
 
 Smoke runs on the host Python (fast feedback for build/import). It needs the
 target interpreter on PATH; locally:
-    pyenv install 3.7.17 3.8.20 3.9.20 3.10.15 3.11.10 3.12.7 3.13.0
+    pyenv install 3.8.20 3.9.20 3.10.15 3.11.10 3.12.7 3.13.0
 In CI: actions/setup-python with the matching python-version.
 
 Stress runs inside a python:X.Y-slim Docker container regardless of host, so
@@ -25,7 +25,7 @@ import os
 
 import nox
 
-PY_VERSIONS = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+PY_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
 # Default sessions when invoked without -s.
 nox.options.sessions = ["smoke"] + [f"stress-{v}" for v in PY_VERSIONS]
@@ -57,12 +57,15 @@ def _make_stress(py):
         duration = os.environ.get("STRESS_DURATION_SEC", "60")
         session.run(
             "docker", "run", "--rm",
-            "-v", f"{os.getcwd()}:/work",
-            "-w", "/work",
+            "-v", f"{os.getcwd()}:/work:ro",
             "-e", f"STRESS_DURATION_SEC={duration}",
             f"python:{py}-slim",
             "bash", "-c",
+            # Copy source to /tmp so the build is isolated from any
+            # host-built artifacts left in the mounted tree by the smoke step.
             "set -e; "
+            "cp -r /work /tmp/src && "
+            "cd /tmp/src && "
             "apt-get update -qq >/dev/null && "
             "apt-get install -y -qq --no-install-recommends g++ >/dev/null && "
             "pip install -q . && "
